@@ -145,6 +145,11 @@ app.post('/addValueToTeam', function (req, res) {
     reqHandler.addValueToTeam(req.body.json,res);
 });
 
+app.get('/', function(request, response) {
+  response.send('Hello World!');
+});
+
+app.set('port', (process.env.PORT || 3000));
 
 var server = app.listen(3000, function () {
     var host = server.address().address;
