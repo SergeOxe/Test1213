@@ -14,8 +14,14 @@ var calcResult  = function  calcResult(i_HomeTeam, i_AwayTeam) {
     var randomCrowdMultiplier = randomIntFromInterval(m_MinCrowdMultiplier, m_MaxCrowdMultiplier)/10;
     //float homeTeamOdds = i_HomeTeam.GetWinOdds();
     //float awayTeamOdds = i_AwayTeam.GetWinOdds();
-    var crowdAtMatch =  (GetFanBase(i_HomeTeam) * randomCrowdMultiplier); // / 100000 * randomFansMultiplier;
-    // crowdAtMatch should be bounded by stadium size
+    try
+    {
+        var crowdAtMatch = (GetFanBase(i_HomeTeam) * randomCrowdMultiplier); // / 100000 * randomFansMultiplier;
+        // crowdAtMatch should be bounded by stadium size}
+    }catch (err){
+        console.log("GetFanBase err sent"+ i_HomeTeam , err);
+        return;
+    }
 
     var  outcome = randomIntFromInterval(1, 10) / 10;
     var homeTeamGoals;

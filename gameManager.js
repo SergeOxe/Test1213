@@ -45,9 +45,9 @@ var setup = function setup(db){
         multiplierBoost = data.pricesAndMultipliers.multiplierBoost;
         lastGame = data.lastGame;
         timeIntervalInHours = data.timeIntervalInHours;
-        defer.resolve("ok");
         lastGame = Date.now();
         executeGames();
+        defer.resolve("ok");
     });
 
     return defer.promise;
