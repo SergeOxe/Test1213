@@ -2,6 +2,8 @@
  * Created by User on 5/7/2015.
  */
 var teamsHandler = require("./teamsHandler");
+var squadHandler = require("./squadHandler");
+var gameManager = require("./gameManager");
 var Promise = require('bluebird');
 
 
@@ -72,6 +74,7 @@ function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
     var updateValue = {};
     var addValue = {};
     if (i_result == 0) {
+        addValue["gamesHistory.thisSeason.points"] = 3;
         addValue["gamesHistory.thisSeason.wins"] = 1;
         addValue["gamesHistory.allTime.wins"] = 1;
         addValue["statistics.currentWinStreak"] = 1;
@@ -85,7 +88,7 @@ function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
 
     }else if (i_result == 1) {
         addValue["gamesHistory.thisSeason.losts"] = 1;
-        addValue["gamesHistory.allTime.lost"] = 1;
+        addValue["gamesHistory.allTime.losts"] = 1;
         addValue["statistics.currentLoseStreak"] = 1;
         addValue["statistics.currentWinlessStreak"] = 1;
         if (team.gamesHistory.thisSeason.crowd - 10 > 0) {
@@ -99,6 +102,7 @@ function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
         updateValue["statistics.currentUndefeatedStreak"] = 0;
 
     }else {
+        addValue["gamesHistory.thisSeason.points"] = 1;
         addValue["gamesHistory.thisSeason.draws"] = 1;
         addValue["gamesHistory.allTime.draws"] = 1;
         addValue["statistics.currentUndefeatedStreak"] = 1;
@@ -117,6 +121,8 @@ function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
     updateValue["lastGameInfo.homeTeamGoals"] = i_matchInfo.homeTeamGoals;
     updateValue["lastGameInfo.crowdAtMatch"] = i_matchInfo.crowdAtMatch;
 
+    var crowdAtMatch = 0;
+
     if (i_isHomeMatch) {
         addValue["gamesHistory.thisSeason.goalsFor"] = i_matchInfo.homeTeamGoals;
         addValue["gamesHistory.thisSeason.goalsAgainst"] = i_matchInfo.awayTeamGoals;
@@ -124,6 +130,7 @@ function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
         addValue["gamesHistory.allTime.goalsAgainst"] = i_matchInfo.awayTeamGoals;
         addValue["gamesHistory.thisSeason.homeGames"] = 1;
         addValue["gamesHistory.thisSeason.crowd"] = i_matchInfo.crowdAtMatch;
+        crowdAtMatch = i_matchInfo.crowdAtMatch;
 
     } else {
         addValue["gamesHistory.thisSeason.goalsAgainst"] = i_matchInfo.homeTeamGoals;
@@ -133,6 +140,11 @@ function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
     }
 
     updateValue["isLastGameIsHomeGame"] = i_isHomeMatch;
+
+
+    squadHandler.addBoostToAllPlayers(team.id);
+
+    //Updated Expenses ()
 
     teamsHandler.addValueToTeamMulti(id,addValue);
     teamsHandler.updateTeamMulti(id,updateValue);
@@ -182,5 +194,31 @@ function GetFanBase(i_Team){
     var fanBase = (i_Team.shop.fansLevel + 1)*1000 + i_Team.additionalFans;
     return fanBase > 0 ? fanBase : 0;
 }
+
+
+function  CalculateIncome(i_Team,crowdAtLastMatch) {
+    var fanBase = i_Team.GetFanBase(i_Team);
+    var MerchandisePrice = 100;
+    var ticketPrice = 60; //i_Team.GetTicketPrice()
+    var incomeFromTickets = crowdAtLastMatch * ticketPrice;
+    var incomeFromMerchandise = (fanBase * (randomIntFromInterval(0, 8) / 10) *MerchandisePrice );
+    return (incomeFromTickets + incomeFromMerchandise);
+}
+
+/*
+ * Return as positive number!!
+ */
+function CalculateOutcome(i_Team) {
+    var  facilitiesLevel = i_Team.shop.facilitiesLevel;
+    var stadiumLevel = i_Team.shop.stadiumLevel;
+    var m_salary = squadHandler.getAllSquadSalaryById(i_Team.id);
+
+    var facilitiesCost = (facilitiesLevel+1) * gameManager.getFacilitiesMultiplier();
+    var stadiumCost = (stadiumLevel+1) * gameManager.getStadiumMultiplier();
+
+    return m_facilitiesCost + m_stadiumCost + m_salary;
+}
+
+
 
 module.exports.calcResult = calcResult;

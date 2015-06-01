@@ -80,8 +80,8 @@ app.post('/upgradeStadium', function(req,res){
     }
 });
 
-app.post('/getInfoByEmail', function (req, res) {
-    reqHandler.getInfoByEmail(req.body.email, res).then(function (data) {
+app.post('/getInfoById', function (req, res) {
+    reqHandler.getInfoById(req.body.id, res).then(function (data) {
         res.send(data);
     });
 });
@@ -96,7 +96,7 @@ app.post('/addMoney' ,function(req, res) {
 
 //------------------------------
 app.post('/getUser', function (req, res) {
-    reqHandler.getUserByEmail(req.body.email,res);
+    reqHandler.getUserById(req.body.id,res);
 });
 //------------------------------------
 app.post('/newTeamUser', function (req, res) {
@@ -145,12 +145,8 @@ app.post('/addValueToTeam', function (req, res) {
     reqHandler.addValueToTeam(req.body.json,res);
 });
 
-app.get('/', function(request, response) {
-  response.send('Hello World!');
-});
 
-app.set('port', (process.env.PORT || 5000));
-var server = app.listen(app.get('port'), function () {
+var server = app.listen(3000, function () {
     var host = server.address().address;
     var port = server.address().port;
     console.log('Listening at http://%s:%s', host, port);
