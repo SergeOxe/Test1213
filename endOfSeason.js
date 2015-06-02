@@ -6,6 +6,7 @@ var userHandler = require("./userHandler");
 var teamsHandler = require("./teamsHandler");
 var leagueHandler = require("./leagueHandler");
 var gameManager = require("./gameManager");
+var reqHandler = require("./reqHandler");
 
 
 
@@ -13,7 +14,7 @@ var gameManager = require("./gameManager");
 var endOfSeason = function endOfSeason(){
     var defer = Promise.defer();
     var fixture = {};
-    fixture["currentFixture"] = 1;
+    fixture["currentFixture"] = 0;
     var results = [];
     var leagues = [];
     results.push(gameManager.updateGamesCollection({},fixture));
@@ -30,26 +31,26 @@ var endOfSeason = function endOfSeason(){
             for (var i = 0 ; i< 20 ; i++){
                 results.push(initSeasonStatistics(teams[i]));
             }
-            if (j != 19){
+            if (j != numOfLeagues - 1){
                 var obj = {};
                 obj["league"] = 1;
-                teamsHandler.addValueToTeamMulti({_id:teams[0]._id},obj);
-                teamsHandler.addValueToTeamMulti({_id:teams[1]._id},obj);
+                results.push(teamsHandler.addValueToTeamMulti({_id:teams[0]._id},obj));
+                results.push(teamsHandler.addValueToTeamMulti({_id:teams[1]._id},obj));
                 console.log("Teams make it to next league " +  teams[0].teamName +"   " + teams[1].teamName);
             }
             if (j != 0){
                 var obj = {};
                 obj["league"] = -1;
-                teamsHandler.addValueToTeamMulti({_id:teams[19]._id},obj);
-                teamsHandler.addValueToTeamMulti({_id:teams[18]._id},obj);
+                results.push(teamsHandler.addValueToTeamMulti({_id:teams[19]._id},obj));
+                results.push(teamsHandler.addValueToTeamMulti({_id:teams[18]._id},obj));
                 console.log("Teams which goes to lower league " +  teams[19].teamName +"   " + teams[18].teamName);
             }
 
         }
     });
-
     Promise.all(results).then(function(data){
         gameManager.initFixtures();
+        reqHandler.gameManagerSetup();
         defer.resolve("ok");
     });
     return defer.promise;
@@ -78,6 +79,8 @@ function  initSeasonStatistics(team) {
     updateValue["gamesHistory.thisSeason.goalsFor"] = 0;
     updateValue["gamesHistory.thisSeason.goalsAgainst"] = 0;
     updateValue["gamesHistory.thisSeason.homeGames"] = 0;
+    updateValue["gamesHistory.thisSeason.crowd"] = 0;
+    updateValue["gamesHistory.thisSeason.points"] = 0;
 
     teamsHandler.updateTeamMulti(id,updateValue).then(function (data){
         defer.resolve("ok");

@@ -296,7 +296,7 @@ var getSquadById = function getSquadById (id){
     squadCollection.findOne({"id":id},function(err,data){
         if(err){
             console.log("getSquadById err",err);
-            defer.resolve({user: "null"});
+            defer.resolve("null");
         }else{
             //console.log("getSquadById","ok");
             defer.resolve(data);
@@ -360,18 +360,16 @@ function boostPlayer(id,indexPlayer){
 }
 
 
-
 var addBoostToAllPlayers = function addBoostToAllPlayers(id) {
     var defer = Promise.defer();
-    var promises = [];
     var find = {};
     find["id"] = id;
+    var obj = {};
     getSquadById(id).then(function (data) {
         //console.log(data);
-        for (var i = 0; i < 11; i++) {
+        for (var i = 0; i < data.players.length; i++) {
             var player = data.players[i];
             var nextBoost = player.nextBoost;
-            var obj = {};
             if (player.boost + player.currentBoost >= player.nextBoost) {
                 obj["players." + i + ".currentBoost"] = (player.boost + player.currentBoost) % player.nextBoost;
                 obj["players." + i + ".nextBoost"] = player.nextBoost * 2;
@@ -380,16 +378,10 @@ var addBoostToAllPlayers = function addBoostToAllPlayers(id) {
             } else {
                 obj["players." + i + ".currentBoost"] = player.boost + player.currentBoost;
             }
-            promises.push(updateSquad(find, obj));
-
         }
-    });
-    Promise.all(promises).then(function (data) {
-        if (data == "null") {
-            defer.resolve("null");
-        } else {
+        updateSquad(find,obj).then(function (res) {
             defer.resolve("ok");
-        }
+        });
     });
     return defer.promise;
 }
@@ -400,10 +392,32 @@ var getAllSquadSalaryById = function getAllSquadSalaryById(id) {
     var salary = 0;
     find["id"] = id;
     getSquadById(id).then(function (data) {
+        if (data == "null"){
+            defer.resolve("null");
+            return;
+        }
         data.players.forEach(function (player) {
-            salary = player.salary;
+            salary += player.salary;
         });
         defer.resolve(salary);
+    });
+    return defer.promise;
+}
+
+var getAllSquadRatingById = function getAllSquadRatingById(id) {
+    var defer = Promise.defer();
+    var find = {};
+    var level = 0;
+    find["id"] = id;
+    getSquadById(id).then(function (data) {
+        if (data == "null"){
+            defer.resolve(randomIntFromInterval(45,120));
+            return;
+        }
+        data.players.forEach(function (player) {
+            level += player.level;
+        });
+        defer.resolve(level);
     });
     return defer.promise;
 }
@@ -442,7 +456,15 @@ function randomIntFromInterval(min,max) {
     return Math.floor(Math.random()*(max-min+1)+min);
 }
 
-module.exports.getAllSquadSalaryById = getAllSquadSalaryById
+var deleteDB = function deleteDB(){
+    squadCollection.remove({},function(err,data){
+
+    });
+}
+
+module.exports.deleteDB = deleteDB;
+module.exports.getAllSquadRatingById = getAllSquadRatingById;
+module.exports.getAllSquadSalaryById = getAllSquadSalaryById;
 module.exports.addBoostToAllPlayers = addBoostToAllPlayers;
 module.exports.boostPlayer = boostPlayer;
 module.exports.setup = setup;

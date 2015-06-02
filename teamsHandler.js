@@ -224,7 +224,7 @@ var newTeamUser = function newTeamUser(detailsJson){
         obj["id"] = detailsJson.id;
         obj["stadiumName"] = detailsJson.stadiumName;
         obj["teamName"] = detailsJson.teamName;
-        obj["coachName"] = detailsJson.coachName;
+        obj["coachName"] = detailsJson.name;
         obj["isBot"] = false;
         teamsCollection.update({"_id":id},{$set: obj},function(err,data){
             if(!data){
@@ -329,7 +329,12 @@ var getSortedTeamsByPoints = function getSortedTeamsByPoints (leagueNum){
     });
     return defer.promise;
 }
+var deleteDB = function deleteDB(){
+    teamsCollection.remove({},function(err,data){
+    });
+}
 
+module.exports.deleteDB = deleteDB;
 module.exports.getSortedTeamsByPoints = getSortedTeamsByPoints;
 module.exports.addValueToTeamMulti = addValueToTeamMulti;
 module.exports.updateTeamMulti = updateTeamMulti;

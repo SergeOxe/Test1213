@@ -4,56 +4,72 @@
 var teamsHandler = require("./teamsHandler");
 var squadHandler = require("./squadHandler");
 var gameManager = require("./gameManager");
+var userHandler = require("./userHandler");
 var Promise = require('bluebird');
 
 
-var m_MinCrowdMultiplier = 0.8;
+var m_MinCrowdMultiplier = 0.6;
 var m_MaxCrowdMultiplier = 1.5;
 
 
 var calcResult  = function  calcResult(i_HomeTeam, i_AwayTeam) {
     var defer = Promise.defer();
+    var results = [];
+    var promises = [];
     var randomCrowdMultiplier = randomIntFromInterval(m_MinCrowdMultiplier, m_MaxCrowdMultiplier)/10;
-    //float homeTeamOdds = i_HomeTeam.GetWinOdds();
-    //float awayTeamOdds = i_AwayTeam.GetWinOdds();
+    var homeTeamOdds;
+    var awayTeamOdds;
+
     try
     {
         var crowdAtMatch = (GetFanBase(i_HomeTeam) * randomCrowdMultiplier); // / 100000 * randomFansMultiplier;
         // crowdAtMatch should be bounded by stadium size}
     }catch (err){
-        console.log("GetFanBase err sent"+ i_HomeTeam , err);
+        console.log("GetFanBase err "+ i_HomeTeam , err);
         return;
     }
+        results.push(squadHandler.getAllSquadRatingById(i_HomeTeam.id));
+        results.push(squadHandler.getAllSquadRatingById(i_AwayTeam.id));
 
-    var  outcome = randomIntFromInterval(1, 10) / 10;
-    var homeTeamGoals;
-    var awayTeamGoals;
-    var eHomeResult;
-    var eAwayResult;
-    if (outcome < 0.3) {
-        // Home team win
-        homeTeamGoals = randomIntFromInterval(1, 5);
-        awayTeamGoals = randomIntFromInterval(0, homeTeamGoals);
-        eHomeResult = 0;
-        eAwayResult = 1;
-    } else if (outcome < 0.6) {
-        // Tie
-        homeTeamGoals = randomIntFromInterval(1, 5);
-        awayTeamGoals = homeTeamGoals;
-        eHomeResult = 2;
-        eAwayResult = 2;
-    } else {
-        // Away team win
-        awayTeamGoals = randomIntFromInterval(1, 5);
-        homeTeamGoals = randomIntFromInterval(0, awayTeamGoals);
-        eHomeResult = 1;
-        eAwayResult = 0;
-    }
-    var v_isHomeTeam = true;
-    var matchInfo =  MatchInfo(i_HomeTeam, i_AwayTeam, homeTeamGoals, awayTeamGoals, crowdAtMatch);
-    UpdateMatchPlayed(i_HomeTeam,eHomeResult, matchInfo, v_isHomeTeam);
-    UpdateMatchPlayed(i_AwayTeam,eAwayResult, matchInfo, !v_isHomeTeam);
-    //return defer.resolve();
+    Promise.all(results).then(function(data){
+        var sum = (data[0] > data[1]? data[0] + 2*data[1] : 2*data[0] + data[1])
+        homeTeamOdds = data[0]/sum;
+        awayTeamOdds = data[1]/sum;
+        //console.log(homeTeamOdds,awayTeamOdds);
+        var outcome = randomIntFromInterval(1, 10) / 10;
+        var homeTeamGoals;
+        var awayTeamGoals;
+        var eHomeResult;
+        var eAwayResult;
+
+        if (outcome < homeTeamOdds) {
+            // Home team win
+            homeTeamGoals = randomIntFromInterval(1, 5);
+            awayTeamGoals = randomIntFromInterval(0, homeTeamGoals);
+            eHomeResult = 0;
+            eAwayResult = 1;
+        } else if (outcome < homeTeamOdds + awayTeamOdds) {
+            // Away team win
+            awayTeamGoals = randomIntFromInterval(1, 5);
+            homeTeamGoals = randomIntFromInterval(0, awayTeamGoals);
+            eHomeResult = 1;
+            eAwayResult = 0;
+        }else {
+            awayTeamGoals = randomIntFromInterval(1, 5);
+            homeTeamGoals = awayTeamGoals;
+            eHomeResult = 2;
+            eAwayResult = 2;
+        }
+
+        var v_isHomeTeam = true;
+        var matchInfo =  MatchInfo(i_HomeTeam, i_AwayTeam, homeTeamGoals, awayTeamGoals, crowdAtMatch);
+        promises.push(UpdateMatchPlayed(i_HomeTeam,eHomeResult, matchInfo, v_isHomeTeam));
+        promises.push(UpdateMatchPlayed(i_AwayTeam,eAwayResult, matchInfo, !v_isHomeTeam));
+        Promise.all(promises).then(function(data){
+            defer.resolve("ok");
+        })
+    });
+    return defer.promise;
 }
 
 function  MatchInfo(i_HomeTeam, i_AwayTeam, i_HomeTeamGoals, i_AwayTeamGoals,  i_CrowdAtMatch){
@@ -129,7 +145,10 @@ function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
         addValue["gamesHistory.allTime.goalsFor"] = i_matchInfo.homeTeamGoals;
         addValue["gamesHistory.allTime.goalsAgainst"] = i_matchInfo.awayTeamGoals;
         addValue["gamesHistory.thisSeason.homeGames"] = 1;
+        addValue["gamesHistory.allTime.homeGames"] = 1;
         addValue["gamesHistory.thisSeason.crowd"] = i_matchInfo.crowdAtMatch;
+        addValue["gamesHistory.allTime.crowd"] = i_matchInfo.crowdAtMatch;
+
         crowdAtMatch = i_matchInfo.crowdAtMatch;
 
     } else {
@@ -140,17 +159,35 @@ function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
     }
 
     updateValue["isLastGameIsHomeGame"] = i_isHomeMatch;
+    if(!team.isBot) {
+        squadHandler.addBoostToAllPlayers(team.id);
 
-
-    squadHandler.addBoostToAllPlayers(team.id);
-
-    //Updated Expenses ()
-
-    teamsHandler.addValueToTeamMulti(id,addValue);
-    teamsHandler.updateTeamMulti(id,updateValue);
-    checkRecords (id).then(function(data){
-        defer.resolve("ok");
-    });
+        //Expenses
+        var ticketPrice = (team.shop.stadiumLevel + 1) * gameManager.getTicketPrice();
+        var incomeFromTickets = crowdAtMatch * ticketPrice;
+        var incomeFromMerchandise = (GetFanBase(team) * (randomIntFromInterval(0, 8) / 10) *gameManager.getMerchandisePrice());
+        var facilitiesCost = (team.shop.facilitiesLevel + 1) * gameManager.getFacilitiesFinanceMultiplier();
+        var stadiumCost = i_isHomeMatch? (team.shop.stadiumLevel + 1) * gameManager.getStadiumFinanceMultiplier() : 0;
+       squadHandler.getAllSquadSalaryById(team.id).then(function(salary){
+           updateValue["finance.incomeFromTickets"] = incomeFromTickets;
+           updateValue["finance.incomeFromMerchandise"] = incomeFromMerchandise;
+           updateValue["finance.facilitiesCost"] = facilitiesCost;
+           updateValue["finance.stadiumCost"] = stadiumCost;
+           updateValue["finance.salary"] = salary;
+           userHandler.addMoneyToUser(team.id,incomeFromTickets + incomeFromMerchandise - facilitiesCost - stadiumCost - salary);
+           teamsHandler.addValueToTeamMulti(id,addValue);
+           teamsHandler.updateTeamMulti(id,updateValue);
+           checkRecords (id).then(function(data){
+               defer.resolve("ok");
+           });
+       });
+    }else{
+        teamsHandler.addValueToTeamMulti(id,addValue);
+        teamsHandler.updateTeamMulti(id,updateValue);
+        checkRecords (id).then(function(data){
+            defer.resolve("ok");
+        });
+    }
     return defer.promise;
 }
 
@@ -191,13 +228,13 @@ function randomIntFromInterval(min,max) {
 }
 
 function GetFanBase(i_Team){
-    var fanBase = (i_Team.shop.fansLevel + 1)*1000 + i_Team.additionalFans;
+    var fanBase = (i_Team.shop.fansLevel + 1)*200 + i_Team.additionalFans;
     return fanBase > 0 ? fanBase : 0;
 }
 
-
+/*
 function  CalculateIncome(i_Team,crowdAtLastMatch) {
-    var fanBase = i_Team.GetFanBase(i_Team);
+    var fanBase = GetFanBase(i_Team);
     var MerchandisePrice = 100;
     var ticketPrice = 60; //i_Team.GetTicketPrice()
     var incomeFromTickets = crowdAtLastMatch * ticketPrice;
@@ -208,6 +245,7 @@ function  CalculateIncome(i_Team,crowdAtLastMatch) {
 /*
  * Return as positive number!!
  */
+/*
 function CalculateOutcome(i_Team) {
     var  facilitiesLevel = i_Team.shop.facilitiesLevel;
     var stadiumLevel = i_Team.shop.stadiumLevel;
@@ -219,6 +257,6 @@ function CalculateOutcome(i_Team) {
     return m_facilitiesCost + m_stadiumCost + m_salary;
 }
 
-
+*/
 
 module.exports.calcResult = calcResult;
