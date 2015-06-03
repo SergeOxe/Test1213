@@ -422,7 +422,9 @@ var getAllSquadSalaryById = function getAllSquadSalaryById(id) {
             return;
         }
         data.players.forEach(function (player) {
-            salary += player.salary;
+            if(!isNaN(player.salary)) {
+                salary += player.salary;
+            }
         });
         defer.resolve(salary);
     });
