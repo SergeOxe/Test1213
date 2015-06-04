@@ -147,7 +147,7 @@ function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
     var playersScore = "";
     if (i_isHomeMatch) {
         for (var i = 0 ; i < i_matchInfo.homeTeamGoals; i ++){
-            playersScore += randomIntFromInterval(1,15)+" ";
+            playersScore += randomIntFromInterval(1,14)+" ";
         }
         addValue["gamesHistory.thisSeason.goalsDifference"] = i_matchInfo.homeTeamGoals - i_matchInfo.awayTeamGoals;
 
@@ -164,7 +164,7 @@ function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
 
     } else {
         for (var i = 0 ; i < i_matchInfo.awayTeamGoals; i ++){
-            playersScore += randomIntFromInterval(1,15)+" ";
+            playersScore += randomIntFromInterval(1,14)+" ";
         }
         addValue["gamesHistory.thisSeason.goalsDifference"] = i_matchInfo.awayTeamGoals - i_matchInfo.homeTeamGoals;
 

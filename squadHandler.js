@@ -417,7 +417,7 @@ var getAllSquadSalaryById = function getAllSquadSalaryById(id) {
     var salary = 0;
     find["id"] = id;
     getSquadById(id).then(function (data) {
-        if (data == "null"){
+        if (data == null){
             defer.resolve("null");
             return;
         }
