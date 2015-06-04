@@ -6,9 +6,9 @@ var userHandler = require("./userHandler");
 var gameManager = require("./gameManager");
 var squadCollection;
 
-var MIN_SALARY = 1000,MAX_SALARY = 2000;
+var MIN_SALARY = 100,MAX_SALARY = 1000;
 var MIN_AGE = 18,MAX_AGE =36;
-var MIN_PLAYER_LEVEL = 1,MAX_PLAYER_LEVEL = 4;
+var MIN_PLAYER_LEVEL = 1,MAX_PLAYER_LEVEL = 5;
 var MIN_PLAYER_PRICE = 4000,MAX_PLAYER_PRICE = 10000;
 var MIN_PRICE_TO_BOOST = 200,MAX_PRICE_TO_BOOST = 1000;
 var MIN_BOOST = 20,MAX_BOOST = 40;
@@ -340,6 +340,8 @@ function boostPlayer(id,indexPlayer){
                 obj["players."+indexPlayer +".priceToBoost"] = player.priceToBoost * gameManager.getMultiplierBoost();
                 //obj["players."+indexPlayer +".boost"] = player.boost;
                 obj["players."+indexPlayer +".level"] = player.level + 1;
+                obj["players."+indexPlayer +".salary"] = player.salary *1.1;
+                obj["players."+indexPlayer +".price"] = player.price *1.25;
             }else{
                 obj["players."+indexPlayer +".currentBoost"] =  player.boost + player.currentBoost;
             }
@@ -438,7 +440,7 @@ var getAllSquadRatingById = function getAllSquadRatingById(id) {
     find["id"] = id;
     getSquadById(id).then(function (data) {
         if (data == null){
-            defer.resolve(randomIntFromInterval(45,120));
+            defer.resolve(randomIntFromInterval(10,50));
             return;
         }
 
