@@ -45,7 +45,8 @@ var deleteDB = function deleteDB(){
     results.push(teamsHandler.addNewNumTeam(20));
     results.push(teamsHandler.addNewNumTeam(20));
     Promise.all(results).then(function(data){
-       defer.resolve("ok");
+        gameManagerSetup();
+        defer.resolve("ok");
     });
     return defer.promise;
 }
@@ -147,10 +148,9 @@ var getInfoById = function getInfoById(id){
     return defer.promise;
 }
 
-var getTeamsInLeague = function getTeamsInLeague(){
-    teamsHandler.getTeamsInLeague().then(function(data){
-        data.forEach(function(team){
-        })
+var getTeamsInLeague = function getTeamsInLeague(league,res){
+    teamsHandler.getTeamsInLeague(league).then(function(data){
+        res.send({teams:data});
     });
 }
 
