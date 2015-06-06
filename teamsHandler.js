@@ -131,7 +131,7 @@ var addNewNumTeam = function addNewNumTeam(num){
             "isDefaultName" : true,
             "logo": randomIntFromInterval(0,29),
             "teamName": "team " + ((leagueNum - 1)*20 + i),
-            "id": ((leagueNum - 1)*20 + i)
+            "id": -1
         };
         //var user = JSON.parse(body);
         teamsCollection.insert(team, function (err, data) {

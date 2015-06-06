@@ -139,7 +139,11 @@ var getInfoById = function getInfoById(id){
         json["nextMatch"] = data[7];
 
         teamsHandler.getTeamsInLeague(data[1].team.league).then(function (leagueData){
-            json["league"] = leagueData;
+            json["league"] = leagueData
+            var obj = {};
+            obj["isMessage"] = false;
+            obj["message"] = [];
+            userHandler.updateMultiValueToUser(id,obj);
             defer.resolve(json)
         })
         ;
