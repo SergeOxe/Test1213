@@ -94,8 +94,8 @@ function giveBonusToTeams(sortedTeamsLeague, leagueNum){
     var message ={"header":"Bonus","content": "You got bonus of "};
     for (var i = 0 ; i < 20 ; i++){
         if(sortedTeamsLeague[i].id != -1) {
-            message.content += ((20 - i) * 100000 * leagueNum) + " coins";
-            results.push(userHandler.addMoneyToUser(sortedTeamsLeague[i].id, (20 - i) * 100000 * leagueNum));
+            message.content += ((20 - i) * 10000 * leagueNum) + " coins";
+            results.push(userHandler.addMoneyToUser(sortedTeamsLeague[i].id, (20 - i) * 10000 * leagueNum));
             results.push(userHandler.addMessageToUser(sortedTeamsLeague[i].id,message));
         }
     }
@@ -106,7 +106,7 @@ function giveBonusToTeams(sortedTeamsLeague, leagueNum){
 }
 
 function  initSeasonStatistics(team) {
-    console.log(team.name ,"init");
+    //console.log(team.teamName ,"init");
     var defer = Promise.defer();
     var id = {};
     id["_id"] = team._id;
