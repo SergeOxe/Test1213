@@ -431,7 +431,7 @@ var getOpponentById = function getOpponentById(id) {
 var getNextOpponentById = function getOpponentById(id) {
     var defer = Promise.defer();
     getIndexOfTeamById(id).then(function(data){
-        GetOpponentByTeamAndFixture(data,(m_currentFixture+1)).then(function(data){
+        GetOpponentByTeamAndFixture(data,(m_currentFixture)).then(function(data){
             defer.resolve(data);
         });
     });
