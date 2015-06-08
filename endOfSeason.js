@@ -30,7 +30,7 @@ var endOfSeason = function endOfSeason(){
     Promise.all(leagues).then(function(leaguesTeams){
         for(var j = 0 ; j < numOfLeagues ; j++){
             var teams = leaguesTeams[j];
-            var upMessage = {"header": "League", "content":"Congratulations you made to the next league!"};
+            var upMessage = {"header": "League", "content":"Congratulations you made it to the next league!"};
             var downMessage = {"header":"League" , "content":"Better luck next time!"};
             results.push(giveBonusToTeams(teams, j));
             for (var i = 0 ; i< 20 ; i++){
@@ -94,8 +94,9 @@ function giveBonusToTeams(sortedTeamsLeague, leagueNum){
     var message ={"header":"Bonus","content": "You got bonus of "};
     for (var i = 0 ; i < 20 ; i++){
         if(sortedTeamsLeague[i].id != -1) {
-            message.content += ((20 - i) * 10000 * leagueNum) + " coins";
-            results.push(userHandler.addMoneyToUser(sortedTeamsLeague[i].id, (20 - i) * 10000 * leagueNum));
+            console.log("giveBonusToTeams",(20 - i) * 10000 * leagueNum );
+            message.content +=""+ ((20 - i) * 10000 * leagueNum) + " coins ";
+            results.push(userHandler.addMoneyToUser(sortedTeamsLeague[i].id, (20 - i) * 100000 * leagueNum));
             results.push(userHandler.addMessageToUser(sortedTeamsLeague[i].id,message));
         }
     }
