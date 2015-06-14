@@ -52,16 +52,23 @@ var addNewUser = function addNewUser (body){
             isMessage: true,
             message: message
             }
-    userCollection.insert(obj,function(err,data){
-        if(err){
-            console.log("addNewTeam",err);
+    loginUser(body).then(function(data){
+        if(data == "ok"){
+            console.log("user exits",err);
             defer.resolve("null");
         }else{
-            //console.log("addNewTeam","Ok");
+            userCollection.insert(obj,function(err,data){
+                if(err){
+                    console.log("addNewUser",err);
+                    defer.resolve("null");
+                }else{
+                    //console.log("addNewTeam","Ok");
 
-            gameManager.addValueToGameCollection({},{"users" : 1});
-            defer.resolve("ok");
-        }});
+                    gameManager.addValueToGameCollection({},{"users" : 1});
+                    defer.resolve("ok");
+                }});
+        }
+    })
     return defer.promise;
 }
 
