@@ -18,7 +18,8 @@ var setup = function setup(db){
 
 var loginUser = function loginUser (body,res){
     var defer = Promise.defer();
-    var user = JSON.parse(body);
+    var user = body;//JSON.parse(body);
+
 
     userCollection.findOne({id:user.id},function(err,data) {
         if (!data) {
