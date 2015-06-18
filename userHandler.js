@@ -18,7 +18,7 @@ var setup = function setup(db){
 
 var loginUser = function loginUser (body,res){
     var defer = Promise.defer();
-    var user = body;//JSON.parse(body);
+    var user = JSON.parse(body);
 
 
     userCollection.findOne({id:user.id},function(err,data) {
@@ -53,23 +53,16 @@ var addNewUser = function addNewUser (body){
             isMessage: true,
             message: message
             }
-    loginUser(body).then(function(data){
-        if(data == "ok"){
-            console.log("user exits",err);
+    userCollection.insert(obj,function(err,data){
+        if(err){
+            console.log("addNewUser",err);
             defer.resolve("null");
         }else{
-            userCollection.insert(obj,function(err,data){
-                if(err){
-                    console.log("addNewUser",err);
-                    defer.resolve("null");
-                }else{
-                    //console.log("addNewTeam","Ok");
+            //console.log("addNewTeam","Ok");
 
-                    gameManager.addValueToGameCollection({},{"users" : 1});
-                    defer.resolve("ok");
-                }});
-        }
-    })
+            gameManager.addValueToGameCollection({},{"users" : 1});
+            defer.resolve("ok");
+        }});
     return defer.promise;
 }
 
