@@ -274,6 +274,19 @@ var clearNotActiveUsers = function clearNotActiveUsers(){
     });
 };
 
+var sendMessage = function sendMessage (i_header,i_content){
+    var message = {};
+    message["header"] = i_header;
+    message["content"] = i_content;
+    userCollection.find({},{id:1}).toArray(function(err, results){
+        if(!err) {
+            results.forEach(function (user) {
+                addMessageToUser(user.id, message);
+            });
+        }
+    });
+}
+
 var deleteDB = function deleteDB(){
     userCollection.remove({},function(err,data){
     });
@@ -295,3 +308,5 @@ module.exports.updateMultiValueToUser = updateMultiValueToUser;
 
 module.exports.deleteUser = deleteUser;
 module.exports.clearNotActiveUsers = clearNotActiveUsers;
+
+module.exports.sendMessage = sendMessage;

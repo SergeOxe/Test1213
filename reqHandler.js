@@ -51,6 +51,10 @@ var deleteDB = function deleteDB(){
     return defer.promise;
 }
 */
+var sendMessage = function sendMessage(req,res){
+    userHandler.sendMessage(req.header,req.content);
+    res.send("ok");
+}
 
 var loginUser = function loginUser (user,res){
     userHandler.loginUser(user).then(function(data){
@@ -324,3 +328,5 @@ module.exports.boostPlayerLevelUp = boostPlayerLevelUp;
 module.exports.changeTeamName = changeTeamName;
 
 module.exports.addInstantTrain = addInstantTrain;
+
+module.exports.sendMessage = sendMessage;

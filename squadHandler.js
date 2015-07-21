@@ -34,17 +34,20 @@ var firstNames = ["Hilton",
     "Allan",
     "Herschel",
     "Vito",
-    "Doron",
+    "Diran",
     "Rogelio",
     "Solomon",
     "Martin",
-    "Almog",
+    "Al",
     "Leland",
     "Hubert",
     "Dewey",
     "Bryan",
     "Collin",
-    "Gilad",
+    "Tamir",
+    "Alon",
+    "Asaf",
+    "Boaz",
     "Jhon",
     "Berry",
     "Lukas",
@@ -99,6 +102,7 @@ var firstNames = ["Hilton",
     "Christoph",
     "Tim",
     "Max",
+    "Clark",
     "Jonathan",
     "Martin",
     "Adrian",
@@ -108,6 +112,10 @@ var firstNames = ["Hilton",
     "Christian",
     "Anton"];
 var lastNames = ["Mahmood",
+    "Croll",
+    "BenHa",
+    "Ambar",
+    "Dia",
     "Boehmer",
     "Sharlow",
     "Vallarta",
@@ -118,6 +126,7 @@ var lastNames = ["Mahmood",
     "Fried",
     "Graham",
     "Zdenek",
+    "Ox",
     "Mendicino",
     "Stoneman",
     "Brainard",
@@ -363,7 +372,7 @@ function boostPlayer(id,indexPlayer){
                 "content":player.firstName + " "+player.lastName+" is level "+ (player.level + 1) + " now."
             };
 
-            userHandler.addMessageToUser(id,message);
+            //userHandler.addMessageToUser(id,message);
         }else{
             obj["players."+indexPlayer +".currentBoost"] =  playerBoost + player.currentBoost;
         }
@@ -405,7 +414,7 @@ var boostPlayerLevelUp = function boostPlayerLevelUp(id,indexPlayer) {
                 "content": player.firstName + " " + player.lastName + " is level " + (player.level + 1) + " now"
             };
             teamHandler.addValueToTeamMulti(find,instantTrain);
-            userHandler.addMessageToUser(id, message);
+            //userHandler.addMessageToUser(id, message);
             updateSquad(find, obj).then(function (data) {
                 if (data == "null") {
                     defer.resolve("null");
