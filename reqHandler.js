@@ -31,7 +31,7 @@ MongoClient.connect("mongodb://Serge:5958164se@ds063889.mongolab.com:63889/tapma
 var gameManagerSetup = function gameManagerSetup(){
     gameManager.setup(db);
 }
-
+/*
 var deleteDB = function deleteDB(){
     var defer = Promise.defer();
     var results = [];
@@ -50,6 +50,7 @@ var deleteDB = function deleteDB(){
     });
     return defer.promise;
 }
+*/
 
 var loginUser = function loginUser (user,res){
     userHandler.loginUser(user).then(function(data){
@@ -71,7 +72,6 @@ var addNewBucket = function addNewBucket(req,res){
 var getUserById = function getUserById (user,res){
     //console.log(user);
     userHandler.getUserById(user,res).then(function(data){
-        console.log(data.user);
         res.send(data.user);
     });
 }
@@ -101,18 +101,40 @@ var getBotSquad = function getBotSquad(req,res){
 
 var changeBotTeamName = function changeBotTeamName(req,res){
     teamsHandler.changeBotTeamName(req.name).then(function(data){
-        res.send(data.team);
+        res.send(data);
     });
 }
+
+var changeTeamName = function changeTeamName(req,res){
+    teamsHandler.changeTeamName(req.id,req.name).then(function(data){
+        res.send(data);
+    });
+}
+
+var addInstantTrain = function addInstantTrain(req,res){
+    var obj = {};
+    obj["totalInstantTrain"] = parseInt(req.amount);
+    teamsHandler.addValueToTeamMulti({id:req.id},obj).then(function(data){
+        res.send(data);
+    });
+}
+
  var newUser = function newUser(details,res){
      var results = [];
-     results.push(userHandler.addNewUser(details));
-     results.push(teamsHandler.newTeamUser(details));
-     results.push(bucketHandler.addNewBucket(details));
-     results.push(squadHandler.newSquadForUser(details));
-     Promise.all(results).then(function(data){
+     var json = JSON.stringify(details);
 
-         res.send("ok");
+     userHandler.loginUser(json,res).then(function(data){
+         if(data == "null") {
+             results.push(userHandler.addNewUser(details));
+             results.push(teamsHandler.newTeamUser(details));
+             results.push(bucketHandler.addNewBucket(details));
+             results.push(squadHandler.newSquadForUser(details));
+             Promise.all(results).then(function (data) {
+                 res.send("ok");
+             })
+         }else{
+             res.send("ok");
+         }
      })
  }
 
@@ -136,12 +158,12 @@ var getInfoById = function getInfoById(id){
         json["squad"] = data[4];
         json["settings"] = data[5].pricesAndMultipliers;
         json["timeTillNextMatch"] = data[6];
+        json["numOfLeagues"] = gameManager.getNumOfLeagues();
         json["nextMatch"] = data[7];
 
         teamsHandler.getTeamsInLeague(data[1].team.league).then(function (leagueData){
             json["league"] = leagueData;
             var obj = {};
-            obj["isMessage"] = false;
             obj["message"] = [];
             userHandler.updateMultiValueToUser(id,obj);
             defer.resolve(json)
@@ -150,6 +172,40 @@ var getInfoById = function getInfoById(id){
         //console.log(json);
     })
     return defer.promise;
+}
+/*
+var messageWasRead = function messageWasRead(id,res){
+    var obj = {};
+    obj["isMessage"] = false;
+    obj["message"] = [];
+    userHandler.updateMultiValueToUser(id,obj);
+    res.send("ok");
+}
+*/
+var connectWithFB = function connectWithFB(id,FBid){
+    var defer = Promise.defer();
+    var results = [];
+    var playerId = {id : id};
+    var obj = {id : FBid};
+    var userObj = {};
+    userObj["id"] = FBid;
+    userObj["connectWithFB"] = true;
+    results.push(userHandler.updateMultiValueToUser(id,userObj));
+    results.push(teamsHandler.updateTeamMulti(playerId,obj));
+    results.push(bucketHandler.updateBucket(id,"id",FBid));
+    results.push(squadHandler.updateSquad(playerId,obj));
+    Promise.all(results).then(function(data){
+        defer.resolve("ok");
+    });
+    return defer.promise;
+}
+
+//Resets Team
+var deleteUser = function deleteUser(id){
+    userHandler.deleteUser(id);
+    bucketHandler.deleteBucket(id);
+    squadHandler.deleteSquad(id);
+    teamsHandler.resetTeam(id);
 }
 
 var getTeamsInLeague = function getTeamsInLeague(league,res){
@@ -197,6 +253,18 @@ var boostPlayer = function boostPlayer(req,res){
     });
 }
 
+var boostPlayerLevelUp = function boostPlayerLevelUp(req,res){
+    squadHandler.boostPlayerLevelUp(req.body.id,req.body.playerId).then(function(data){
+        res.send(data);
+    });
+};
+
+var changePlayerName = function changePlayerName(req,res){
+    squadHandler.changePlayerName(req.body.id,req.body).then(function(data){
+        res.send(data);
+    });
+}
+
 var upgradeItem = function upgradeItem(req,item,res){
     userHandler.upgradeItem(req.body.id,item).then(function(data){
         res.send(data);
@@ -219,7 +287,7 @@ var collectBucket = function collectBucket(req,res){
     });
 }
 
-module.exports.deleteDB = deleteDB;
+//module.exports.deleteDB = deleteDB;
 module.exports.collectBucket = collectBucket;
 module.exports.addMoneyToUser = addMoneyToUser;
 module.exports.getTimeTillNextMatch = getTimeTillNextMatch;
@@ -242,5 +310,17 @@ module.exports.newUser = newUser;
 module.exports.getTeamsInLeague = getTeamsInLeague;
 module.exports.addNewBucket = addNewBucket;
 module.exports.loginUser = loginUser;
-module.exports.changeBotTeamName =changeBotTeamName;
+module.exports.changeBotTeamName = changeBotTeamName;
 module.exports.gameManagerSetup = gameManagerSetup;
+
+module.exports.connectWithFB = connectWithFB;
+module.exports.deleteUser = deleteUser;
+
+module.exports.changePlayerName = changePlayerName;
+module.exports.boostPlayerLevelUp = boostPlayerLevelUp;
+
+//module.exports.messageWasRead = messageWasRead;
+
+module.exports.changeTeamName = changeTeamName;
+
+module.exports.addInstantTrain = addInstantTrain;

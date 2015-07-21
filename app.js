@@ -8,7 +8,9 @@ var reqHandler = require('./reqHandler');
 var app = express();
 var fs = require('fs');
 
-var version = "0.0.0.3";
+var userHandler = require("./userHandler");
+
+var version = "2.0.0.0";
 app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 app.use(multer()); // for parsing multipart/form-data
@@ -30,12 +32,17 @@ app.post('/newUser', function (req, res) {
     }
 });
 
+app.post('/clear', function (req, res) {
+    userHandler.clearNotActiveUsers();
+});
 
+/*
 app.get('/delete', function (req, res) {
     reqHandler.deleteDB().then(function(data){
         res.send(data);
     });
 });
+*/
 
 app.post('/collectBucket', function (req, res) {
     try {
@@ -63,11 +70,33 @@ app.post('/changeBotTeamName', function (req, res) {
     reqHandler.changeBotTeamName(req.body,res);
 });
 
+app.post('/changeTeamName', function (req, res) {
+    reqHandler.changeTeamName(req.body,res);
+});
+
 app.post('/playerBoostClick', function(req,res){
     try{
         reqHandler.boostPlayer(req,res);
     }catch (err){
         console.log("error","playerBoostClick");
+        res.status(502).send("error");
+    }
+});
+
+app.post('/boostPlayerLevelUp', function(req, res){
+    try{
+        reqHandler.boostPlayerLevelUp(req,res);
+    }catch (err){
+        console.log("error",err);
+        res.status(502).send("error");
+    }
+});
+
+app.post('/changePlayerName', function(req,res){
+    try {
+        reqHandler.changePlayerName(req, res);
+    }catch (err) {
+        console.log("error","changePlayerName");
         res.status(502).send("error");
     }
 });
@@ -110,6 +139,17 @@ app.post('/getInfoById', function (req, res) {
     }
 });
 
+/*
+app.post('/messageWasRead', function (req, res) {
+    try {
+        reqHandler.messageWasRead(req.body.id, res);
+    }catch (err){
+        console.log("error","messageWasRead");
+        res.status(502).send("error");
+    }
+});
+
+
 app.post('/getTeamsInLeague', function (req, res) {
     try {
         reqHandler.getTeamsInLeague(req.body.league, res);
@@ -118,17 +158,17 @@ app.post('/getTeamsInLeague', function (req, res) {
         res.status(502).send("error");
     }
 });
+*/
 
-app.post('/coinClick',function(req,res){
+app.post('/addInstantTrain',function(req,res){
     try {
-        reqHandler.addCoinMoney(req, res);
+        reqHandler.addInstantTrain(req.body, res);
     }catch (err){
         console.log("error","coinClick");
         res.status(502).send("error");
     }
 });
 
-//--------------------------------------------
 app.post('/addMoney' ,function(req, res) {
     reqHandler.addMoneyToUser(req,res);
 });
@@ -137,6 +177,7 @@ app.get('/getTimeTillNextMatch', function (req, res) {
     reqHandler.getTimeTillNextMatch(res);
 });
 
+//------------------------------------------------
 app.get('/executeNextFixture', function (req, res) {
     reqHandler.executeNextFixture(req,res);
 });
@@ -157,7 +198,7 @@ app.get('/', function(request, response) {
 app.set('port', (process.env.PORT || 5000));
 
 var server = app.listen(app.get('port'), function () {
-//var server = app.listen(3000, function () {
+//var server = app.listen(4000, function () {
     var host = server.address().address;
     var port = server.address().port;
     console.log('Listening at http://%s:%s', host, port);

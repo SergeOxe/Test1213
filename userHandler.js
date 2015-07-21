@@ -4,7 +4,12 @@
 var Promise = require('bluebird');
 var gameManager = require("./gameManager");
 var teamsHandler = require("./teamsHandler");
+var reqHandler = require("./reqHandler");
 var userCollection;
+
+var monthInMilliSeconds = 2628000000;
+//var monthInMilliSeconds = 1000;
+
 
 var setup = function setup(db){
     db.collection("Users",function(err, data) {
@@ -41,16 +46,21 @@ var loginUser = function loginUser (body,res){
 var addNewUser = function addNewUser (body){
     var defer = Promise.defer();
     var message = [];
-    message.push({header:"Welcome To Tap Manager","content":" You got 1000000"});
+    var withFB = false;
+    message.push({header:"Welcome To Tap Manager","content":"The plan is simple, win the Championship!"});
+
+    if (!isNaN(body.id)){
+        withFB = true;
+    }
     var obj = {
             //email:user.email,
             id: body.id,
+            connectWithFB:withFB,
             name:body.name,
             currentLeague:0,
-            coinValue: 200,
-            money:1000000,
+            coinValue: 0,
+            money:500000,
             lastLogin : Date.now(),
-            isMessage: true,
             message: message
             }
     userCollection.insert(obj,function(err,data){
@@ -66,6 +76,16 @@ var addNewUser = function addNewUser (body){
     return defer.promise;
 }
 
+var deleteUser = function deleteUser(id){
+    console.log("Deleting user: " + id);
+    userCollection.remove({id:id},function(err,data){
+        if(!data){
+            console.log("deleteUser err",err);
+        }else{
+            gameManager.addValueToGameCollection({},{"users" : -1});
+        }});
+}
+
 var getUserById = function getUserById (id){
     var defer = Promise.defer();
     var query = {id : id}
@@ -79,6 +99,7 @@ var getUserById = function getUserById (id){
         }});
     return defer.promise;
 }
+
 
 var updateUser = function updateUser (id,Key,value){
     var defer = Promise.defer();
@@ -145,11 +166,9 @@ var addMessageToUser = function addMessageToUser (id,messageArray){
             console.log("addMessageToUser",err);
             defer.resolve("null");
         }else{
-            updateUser(id,"isMessage",true).then(function(data){
-                defer.resolve(data);
-            });
-            //console.log("addMessageToUser","ok");
+            defer.resolve("ok");
         }});
+        //console.log("addMessageToUser","ok");
     return defer.promise;
 }
 
@@ -181,7 +200,7 @@ var updateMultiValueToUser = function updateMultiValueToUser (id,obj){
     return defer.promise;
 }
 
-var upgradeItem = function upgradeFans(id,item) {
+var upgradeItem = function upgradeItem(id,item) {
     var defer = Promise.defer();
     var results = [];
     results.push(teamsHandler.getTeamById(id));
@@ -223,6 +242,8 @@ var upgradeItem = function upgradeFans(id,item) {
     return defer.promise;
 }
 
+
+//No Coin
 var addCoinMoney = function addCoinMoney(id,clicks){
     var defer = Promise.defer();
     getUserById(id).then(function(data){
@@ -237,12 +258,26 @@ var addCoinMoney = function addCoinMoney(id,clicks){
 
     });
     return defer.promise;
-}
+};
+
+var clearNotActiveUsers = function clearNotActiveUsers(){
+    console.log("Enter clearNotActiveUsers");
+    var date = Date.now();
+    userCollection.find({connectWithFB : false},{id:1,"lastLogin":1}).toArray(function(err, results){
+        if(!err){
+            results.forEach(function(user){
+                if((date - user.lastLogin) > monthInMilliSeconds){
+                    reqHandler.deleteUser(user.id)
+                }
+            });
+        }
+    });
+};
 
 var deleteDB = function deleteDB(){
     userCollection.remove({},function(err,data){
     });
-}
+};
 
 module.exports.deleteDB = deleteDB;
 module.exports.addMoneyToUser = addMoneyToUser;
@@ -257,3 +292,6 @@ module.exports.getUserById = getUserById;
 module.exports.setup = setup;
 module.exports.addMessageToUser = addMessageToUser;
 module.exports.updateMultiValueToUser = updateMultiValueToUser;
+
+module.exports.deleteUser = deleteUser;
+module.exports.clearNotActiveUsers = clearNotActiveUsers;

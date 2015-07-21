@@ -40,15 +40,29 @@ var calcResult  = function  calcResult(i_HomeTeam, i_AwayTeam) {
     }
 
     Promise.all(results).then(function(data){
-        var sum = (data[0] > data[1]? data[0] + 2*data[1] : 2*data[0] + data[1])
-        homeTeamOdds = data[0]/sum;
-        awayTeamOdds = data[1]/sum;
+        var sum = 0;
+        //var sum = (data[0] > data[1]? data[0] + 2*data[1] : 2*data[0] + data[1]);
+        if(data[0] > data[1]){
+            sum = data[0] + 2*data[1] + (data[0] - data[1]);
+            homeTeamOdds = ((data[0] - data[1])+ data[0])/sum;
+            awayTeamOdds = data[1]/sum;
+        }else{
+            sum = 2*data[0] + data[1] + (data[1] - data[0]);
+            homeTeamOdds = data[0]/sum;
+            awayTeamOdds = ((data[1] - data[0])+ data[1])/sum;
+        }
+        //homeTeamOdds = data[0]/sum;
+        //awayTeamOdds = data[1]/sum;
 
-        var outcome = randomIntFromInterval(1, 1000) / 1000;
+        var outcome = randomIntFromInterval(1, 10000) / 10000;
         var homeTeamGoals;
         var awayTeamGoals;
         var eHomeResult;
         var eAwayResult;
+
+        //console.log("homeTeamOdds, rating "+data[0]+ " odds " + homeTeamOdds+" win? "+(outcome < homeTeamOdds));
+        //console.log("awayTeamOdds, rating "+data[1]+ " odds " + (homeTeamOdds + awayTeamOdds)+" win? "+(outcome < (homeTeamOdds + awayTeamOdds)));
+        //console.log("outcome "+ outcome);
 
         if (outcome < homeTeamOdds) {
             // Home team win
@@ -103,18 +117,23 @@ function  MatchInfo(i_HomeTeam, i_AwayTeam, i_HomeTeamGoals, i_AwayTeamGoals,  i
 function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
     //console.log(team,i_result,  i_matchInfo,  i_isHomeMatch);
     var defer = Promise.defer();
+    var promiseArray = [];
     var id = {};
     id["_id"] = team._id;
     var updateValue = {};
     var addValue = {};
+    var instantTrain  = 0;
     if (i_result == 0) {
         addValue["gamesHistory.thisSeason.points"] = 3;
         addValue["gamesHistory.thisSeason.wins"] = 1;
         addValue["gamesHistory.allTime.wins"] = 1;
         addValue["statistics.currentWinStreak"] = 1;
-        addValue["statistics.currentUndefeatedStreak"] =1 ;
-        addValue["additionalFans"] = 25;
+        addValue["statistics.currentUndefeatedStreak"] =1;
 
+        updateValue["additionalFans"] = randomIntFromInterval(10,150);
+
+        addValue["totalInstantTrain"] = 2;
+        instantTrain = 2;
 
         updateValue["lastResult"]= 0;
         updateValue["statistics.currentLoseStreak"] = 0;
@@ -125,8 +144,13 @@ function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
         addValue["gamesHistory.allTime.losts"] = 1;
         addValue["statistics.currentLoseStreak"] = 1;
         addValue["statistics.currentWinlessStreak"] = 1;
-        if (team.gamesHistory.thisSeason.crowd - 10 > 0) {
-            addValue["additionalFans"] = -10;
+
+        addValue["totalInstantTrain"] = 0;
+        instantTrain = 0;
+
+        var fansLeft = randomIntFromInterval(-50,0);
+        if (team.gamesHistory.thisSeason.crowd - fansLeft > 0) {
+            updateValue["additionalFans"] = fansLeft;
         }else {
             updateValue["gamesHistory.thisSeason.crowd"] = 0;
         }
@@ -141,8 +165,12 @@ function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
         addValue["gamesHistory.allTime.draws"] = 1;
         addValue["statistics.currentUndefeatedStreak"] = 1;
         addValue["statistics.currentWinlessStreak"] = 1;
-        addValue["additionalFans"] = 13;
 
+
+        addValue["totalInstantTrain"] = 1;
+        instantTrain = 1;
+
+        updateValue["additionalFans"] =  randomIntFromInterval(5,80);
         updateValue["lastResult"]= 2;
         updateValue["statistics.currentWinStreak"] = 0;
         updateValue["statistics.currentLoseStreak"] = 0;
@@ -192,21 +220,22 @@ function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
 
     updateValue["isLastGameIsHomeGame"] = i_isHomeMatch;
     if(!team.isBot) {
-        squadHandler.addBoostToAllPlayers(team.id);
+        //squadHandler.addBoostToAllPlayers(team.id);
         squadHandler.addGaolToMultiPlayer(team.id,playersScore);
         //Expenses
         var ticketPrice = (team.shop.stadiumLevel + 1) * gameManager.getTicketPrice();
         var incomeFromTickets = crowdAtMatch * ticketPrice;
-        var incomeFromMerchandise = (GetFanBase(team) * (randomIntFromInterval(0, 8) / 10) *gameManager.getMerchandisePrice());
+        var incomeFromMerchandise = (GetFanBase(team) * (randomIntFromInterval(1, 8) / 10) *gameManager.getMerchandisePrice());
         var facilitiesCost = (team.shop.facilitiesLevel + 1) * gameManager.getFacilitiesFinanceMultiplier();
         var stadiumCost = i_isHomeMatch? (team.shop.stadiumLevel + 1) * gameManager.getStadiumFinanceMultiplier() : 0;
-       squadHandler.getAllSquadSalaryById(team.id).then(function(salary){
+        squadHandler.getAllSquadSalaryById(team.id).then(function(salary){
            updateValue["finance.incomeFromTickets"] = incomeFromTickets;
            updateValue["finance.incomeFromMerchandise"] = incomeFromMerchandise;
            updateValue["finance.facilitiesCost"] = facilitiesCost;
            updateValue["finance.stadiumCost"] = stadiumCost;
            updateValue["finance.salary"] = salary;
-           userHandler.addMoneyToUser(team.id,incomeFromTickets + incomeFromMerchandise - facilitiesCost - stadiumCost - salary);
+           updateValue["finance.instantTrain"] = instantTrain;
+           userHandler.addMoneyToUser(team.id,(incomeFromTickets + incomeFromMerchandise));
            teamsHandler.addValueToTeamMulti(id,addValue);
            teamsHandler.updateTeamMulti(id,updateValue);
            checkRecords (id).then(function(data){
@@ -214,10 +243,12 @@ function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
            });
        });
     }else{
-        teamsHandler.addValueToTeamMulti(id,addValue);
-        teamsHandler.updateTeamMulti(id,updateValue);
-        checkRecords (id).then(function(data){
-            defer.resolve("ok");
+        promiseArray.push(teamsHandler.addValueToTeamMulti(id,addValue));
+        promiseArray.push(teamsHandler.updateTeamMulti(id,updateValue));
+        Promise.all(promiseArray).then(function (data1) {
+            checkRecords(id).then(function (data) {
+                defer.resolve("ok");
+            });
         });
     }
     return defer.promise;
@@ -225,32 +256,35 @@ function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
 
 function checkRecords(id){
     var defer = Promise.defer();
+    if(id == -1){
+        return defer.resolve("ok");
+    }
     teamsHandler.getTeamByKey(id).then(function (data){
        if(data.team == "null"){
            console.log("checkRecords err", "null");
        }else {
            var team = data.team;
            var updateValue = {};
+           //console.log(team.statistics.currentLoseStreak, team.statistics.longestLoseStreak);
            if (team.statistics.currentLoseStreak > team.statistics.longestLoseStreak) {
                updateValue["statistics.longestLoseStreak"] = team.statistics.currentLoseStreak;
            }
-
+            //console.log(team.statistics.currentUndefeatedStreak , team.statistics.longestUndefeatedStreak);
            if (team.statistics.currentUndefeatedStreak > team.statistics.longestUndefeatedStreak) {
                updateValue["statistics.longestUndefeatedStreak"] = team.statistics.currentUndefeatedStreak;
            }
-
+           //console.log(team.statistics.currentWinlessStreak , team.statistics.longestWinlessStreak);
            if (team.statistics.currentWinlessStreak > team.statistics.longestWinlessStreak) {
                updateValue["statistics.longestWinlessStreak"] = team.statistics.currentWinlessStreak;
            }
-
+            //console.log(team.statistics.currentWinStreak , team.statistics.longestWinStreak);
            if (team.statistics.currentWinStreak > team.statistics.longestWinStreak) {
                updateValue["statistics.longestWinStreak"] = team.statistics.currentWinStreak;
            }
 
            teamsHandler.updateTeamMulti(id, updateValue);
-
+           defer.resolve("ok");
        }
-        defer.resolve("ok");
     });
     return defer.promise;
 }

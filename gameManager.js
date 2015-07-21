@@ -4,6 +4,7 @@
 var teamsHandler = require("./teamsHandler");
 var matchManager = require("./matchManager");
 var endOfSeason = require("./endOfSeason");
+var userHandler = require("./userHandler");
 var Promise = require('bluebird');
 
 var m_currentFixture;
@@ -26,6 +27,7 @@ var merchandisePrice;
 var lastGame;
 var timeIntervalInHours;
 var numOfLeagues;
+var MAX_USERS = 1000;
 
 var setup = function setup(db){
     var defer = Promise.defer();
@@ -45,7 +47,7 @@ var setup = function setup(db){
         initPriceOfFans = data.pricesAndMultipliers.initPriceOfFans;
         initPriceOfFacilities = data.pricesAndMultipliers.initPriceOfFacilities;
         initPriceOfStadium = data.pricesAndMultipliers.initPriceOfStadium;
-        fansMultiplier = data.pricesAndMultipliers.facilitiesMultiplier;
+        fansMultiplier = data.pricesAndMultipliers.fansMultiplier;
         facilitiesMultiplier = data.pricesAndMultipliers.facilitiesMultiplier;
         stadiumMultiplier = data.pricesAndMultipliers.stadiumMultiplier;
         multiplierBoost = data.pricesAndMultipliers.multiplierBoost;
@@ -101,6 +103,7 @@ function executeGames() {
         lastGame = Date.now();
         console.log("next Game In "+ getTimeTillNextMatch());
         updateGamesCollection({},{lastGame:lastGame});
+        addUsers();
         setTimeout(executeGames, timeIntervalInHours * 3600000);
     }
 }
@@ -115,7 +118,7 @@ function getLeagueSetup() {
                         currentSeason:0,
                         lastGame: Date.now(),
                         users: 0,
-                        timeIntervalInHours : 0.0833,
+                        timeIntervalInHours : 0.166,
                         fixturesLists : generateFixtures(),
                         pricesAndMultipliers:{
                             multiplierBoost : 1.5,
@@ -296,6 +299,7 @@ var executeNextFixture = function  executeNextFixture(res){
     }
     var leagues = [];
     leagues.push([]);
+    //console.log(numOfLeagues);
     for (var  i = 1; i <= numOfLeagues ; i++){
         leagues.push(teamsHandler.getSortedTeams(i));
     };
@@ -304,12 +308,16 @@ var executeNextFixture = function  executeNextFixture(res){
         for (var j = 1; j <= numOfLeagues; j++) {
             var sortedTeamsLeague = sortedTeams[j];
             //console.log(sortedTeamsLeague);
-            for (var i = 0; i < getMatchesPerFixture(); i++) {
-                var team1 = getTeamByFixtureAndMatch(m_currentFixture, i, v_IsHomeTeam);
-                var team2 = getTeamByFixtureAndMatch(m_currentFixture, i, !v_IsHomeTeam);
-                var teamObj1 = sortedTeamsLeague[team1];
-                var teamObj2 = sortedTeamsLeague[team2];
-                matchManager.calcResult(teamObj1, teamObj2);
+            if(sortedTeamsLeague) {
+                for (var i = 0; i < getMatchesPerFixture(); i++) {
+                    var team1 = getTeamByFixtureAndMatch(m_currentFixture, i, v_IsHomeTeam);
+                    var team2 = getTeamByFixtureAndMatch(m_currentFixture, i, !v_IsHomeTeam);
+                    var teamObj1 = sortedTeamsLeague[team1];
+                    var teamObj2 = sortedTeamsLeague[team2];
+                    matchManager.calcResult(teamObj1, teamObj2);
+                }
+            }else {
+                console.log("executeNextFixture err sortedTeamsLeague",sortedTeamsLeague);
             }
         }
         var curr = {};
@@ -319,10 +327,6 @@ var executeNextFixture = function  executeNextFixture(res){
         lastGame = Date.now();
         console.log("executeNextFixture",m_currentFixture,"ok");
     });
-
-//if (!res) {
-    //res.send("ok");
-//}
 }
 
 function  GetOpponentByTeamAndFixture( indexAndLeague,  i_Fixture){
@@ -332,11 +336,13 @@ function  GetOpponentByTeamAndFixture( indexAndLeague,  i_Fixture){
         var v_IsHomeTeam = true;
         for (var i = 0; i < getMatchesPerFixture(); i++){
             if (getTeamByFixtureAndMatch(i_Fixture, i, v_IsHomeTeam) == indexAndLeague.index) {
-                defer.resolve({opponent :sortedLeague[getTeamByFixtureAndMatch(i_Fixture, i, !v_IsHomeTeam)].teamName,
+                var teamH = sortedLeague[getTeamByFixtureAndMatch(i_Fixture, i, !v_IsHomeTeam)];
+                defer.resolve({opponent :teamH.teamName,logo:teamH.logo,
                         isHomeMatch:true});
             }
             if (getTeamByFixtureAndMatch(i_Fixture, i, !v_IsHomeTeam) == indexAndLeague.index) {
-                defer.resolve({opponent : sortedLeague[getTeamByFixtureAndMatch(i_Fixture, i, v_IsHomeTeam)].teamName,
+                var teamA  = sortedLeague[getTeamByFixtureAndMatch(i_Fixture, i, v_IsHomeTeam)];
+                defer.resolve({opponent : teamA.teamName,logo:teamA.logo,
                         isHomeMatch:false});
             }
         }
@@ -349,11 +355,25 @@ function  GetOpponentByTeamAndFixture( indexAndLeague,  i_Fixture){
 
 function  GetOpponentByTeam( i_Team) {
     var defer = Promise.defer();
-    console.log("GetOpponentByTeam");
+    //console.log("GetOpponentByTeam");
     GetOpponentByTeamAndFixture(i_Team,m_currentFixture).then(function(data){
         defer.resolve(data);
     });
     return defer.promise;
+}
+
+function addUsers(){
+    gameManagerCollection.findOne({}, function (err, data) {
+        if (data) {
+            var users = data.users;
+            if (((numOfLeagues * 20 ) - users) < 20) {
+                teamsHandler.addNewNumTeam(20);
+            }
+            if(users > MAX_USERS){
+                userHandler.clearNotActiveUsers();
+            }
+        }
+    });
 }
 
 var getIndexOfTeamById = function getIndexOfTeamById(id){
@@ -381,19 +401,19 @@ var getIndexOfTeamById = function getIndexOfTeamById(id){
 
 var getMultiplierBoost = function getMultiplierBoost(){
     return multiplierBoost;
-}
+};
 
 var getInitPriceOfFans = function getInitPriceOfFans(){
     return initPriceOfFans;
-}
+};
 
 var getInitPriceOfFacilities = function getInitPriceOfFacilities(){
     return initPriceOfFacilities;
-}
+};
 
 var getInitPriceOfStadium = function getInitPriceOfStadium(){
-    return multiplierBoost;
-}
+    return initPriceOfStadium;
+};
 
 var getFansMultiplier = function getFansMultiplier(){
     return fansMultiplier;

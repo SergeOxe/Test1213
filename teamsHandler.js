@@ -4,6 +4,7 @@
 var Promise = require('bluebird');
 var squadHandler = require('./squadHandler');
 var gameManager = require('./gameManager');
+var userHandler = require('./userHandler');
 //var reqHandler = require('./reqHandler');
 var teamsCollection;
 
@@ -66,7 +67,6 @@ function randomIntFromInterval(min,max) {
 }
 var addNewNumTeam = function addNewNumTeam(num){
     var defer = Promise.defer();
-    //console.log(body);
     var leagueNum = gameManager.getNumOfLeagues() + 1;
     var obj = {};
     obj["numOfLeagues"] = 1;
@@ -129,9 +129,11 @@ var addNewNumTeam = function addNewNumTeam(num){
                 }
             },
             "isDefaultName" : true,
-            "logo": randomIntFromInterval(0,29),
+            "logo": randomIntFromInterval(0,15),
             "teamName": "team " + ((leagueNum - 1)*20 + i),
-            "id": -1
+            "id": -1,
+            "totalInstantTrain":0,
+            "totalChampionships" : 0
         };
         //var user = JSON.parse(body);
         teamsCollection.insert(team, function (err, data) {
@@ -145,6 +147,29 @@ var addNewNumTeam = function addNewNumTeam(num){
         });
         //reqHandler.gameManagerSetup();
     }
+    return defer.promise;
+}
+
+var resetTeam = function resetTeam(id){
+    var defer = Promise.defer();
+    var obj = {};
+    obj["shop.fansLevel"] = 0;
+    obj["shop.facilitiesLevel"] = 0;
+    obj["shop.stadiumLevel"] = 0;
+    obj["isBot"] = true;
+    obj["isDefaultName"] = true;
+    obj["logo"] = randomIntFromInterval(0,15);
+    obj["id"] = -1;
+    obj["totalInstantTrain"] = 1;
+    updateTeamMulti({id:id},obj).then(function (data){
+        if (!data) {
+            console.log("resetTeam", err);
+            defer.resolve("null");
+        } else {
+            //console.log("addNewTeam", data);
+            defer.resolve("ok");
+        }
+    });
     return defer.promise;
 }
 
@@ -172,6 +197,31 @@ var changeBotTeamName = function changeBotTeamName (name){
             obj["teamName"] = name;
             obj["isDefaultName"] = false;
             updateTeamMulti({_id:data._id},obj).then(function(data){
+                defer.resolve("ok");
+            });
+            //console.log("getBotTeam","ok");
+
+        }});
+    return defer.promise;
+}
+
+var changeTeamName = function changeTeamName (id,name){
+    var defer = Promise.defer();
+    teamsCollection.findOne({id:id},function(err,data){
+        if(!data){
+            console.log("changeTeamName err",err);
+            defer.resolve("null");
+        }else{
+            var obj = {};
+            obj["teamName"] = name;
+            obj["isDefaultName"] = false;
+            updateTeamMulti({id:id},obj).then(function(data){
+                var message = {
+                    "header":"Team name was changed",
+                    "content":"Your team name is "+ name+" now."
+                };
+
+                userHandler.addMessageToUser(id,message);
                 defer.resolve("ok");
             });
             //console.log("getBotTeam","ok");
@@ -249,8 +299,32 @@ var newTeamUser = function newTeamUser(detailsJson){
         obj["teamName"] = detailsJson.teamName;
         obj["coachName"] = detailsJson.name;
         obj["isBot"] = false;
+        obj["totalInstantTrain"] = 1;
         obj["lastGameInfo.homeTeam"] = detailsJson.teamName;
         obj["lastGameInfo.awayTeam"] = detailsJson.teamName +" U18";
+        obj["logo"] = detailsJson.logo;
+        obj["additionalFans"] = 0;
+        obj["totalChampionships"] = 0;
+
+        obj["gamesHistory.allTime.wins"] = 0;
+        obj["gamesHistory.allTime.losts"] = 0;
+        obj["gamesHistory.allTime.draws"] = 0;
+        obj["gamesHistory.allTime.goalsFor"] = 0;
+        obj["gamesHistory.allTime.goalsAgainst"] = 0;
+        obj["gamesHistory.allTime.homeGames"] = 0;
+        obj["gamesHistory.allTime.crowd"] = 0;
+
+        obj["statistics.longestWinStreak"] = 0;
+        obj["statistics.longestLoseStreak"] = 0;
+        obj["statistics.longestWinlessStreak"] = 0;
+        obj["statistics.longestUndefeatedStreak"] = 0;
+        obj["statistics.biggestWinRecord"] = 0;
+        obj["statistics.biggestLoseRecord"] = 0;
+        obj["statistics.currentWinStreak"] = 0;
+        obj["statistics.currentLoseStreak"] = 0;
+        obj["statistics.currentWinlessStreak"] = 0;
+        obj["statistics.currentUndefeatedStreak"] = 0;
+
         teamsCollection.update({"_id":id},{$set: obj},function(err,data){
             if(!data){
                 console.log("newTeamUser err",err);
@@ -269,7 +343,7 @@ var getTeamById = function getTeamById (id){
     teamsCollection.findOne({id:id},function(err,data){
         if(!data){
             console.log("getTeamById err",err);
-            defer.resolve({user: "null"});
+            defer.resolve({team: "null"});
         }else{
             //console.log("getTeamById","ok");
             defer.resolve({team:data});
@@ -335,7 +409,7 @@ var getSortedTeams = function getSortedTeams (leagueNum){
     var defer = Promise.defer();
     teamsCollection.find({league: leagueNum}).sort({_id:1}).toArray(function(err,sortedTeams) {
         if (!sortedTeams) {
-            console.log("getSortedTeams err",err)
+            console.log("getSortedTeams err",err);
             defer.resolve("null");
         }else{
             //console.log("getSortedTeams","ok")
@@ -350,7 +424,7 @@ var getSortedTeamsByPoints = function getSortedTeamsByPoints (leagueNum){
     var defer = Promise.defer();
     teamsCollection.find({league: leagueNum}).sort({"gamesHistory.thisSeason.points": -1}, {"gamesHistory.thisSeason.goalsDifference" : -1}).toArray(function(err,sortedTeams) {
         if (!sortedTeams) {
-            console.log("getSortedTeamsByPoints err",err)
+            console.log("getSortedTeamsByPoints err",err);
             defer.resolve("null");
         }else{
             //console.log("getSortedTeamsByPoints","ok")
@@ -359,10 +433,12 @@ var getSortedTeamsByPoints = function getSortedTeamsByPoints (leagueNum){
     });
     return defer.promise;
 }
+
 var deleteDB = function deleteDB(){
     teamsCollection.remove({},function(err,data){
     });
 }
+
 
 module.exports.deleteDB = deleteDB;
 module.exports.getSortedTeamsByPoints = getSortedTeamsByPoints;
@@ -379,3 +455,7 @@ module.exports.getTeamByKey = getTeamByKey;
 module.exports.getTeamsInLeague = getTeamsInLeague;
 module.exports.changeBotTeamName = changeBotTeamName;
 module.exports.setup = setup;
+
+module.exports.resetTeam = resetTeam;
+
+module.exports.changeTeamName = changeTeamName;
