@@ -10,7 +10,7 @@ var fs = require('fs');
 
 var userHandler = require("./userHandler");
 
-var version = "2.0.0.0";
+var version = "2.0.0.1";
 app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 app.use(multer()); // for parsing multipart/form-data
