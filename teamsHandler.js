@@ -306,7 +306,13 @@ var newTeamUser = function newTeamUser(detailsJson){
         obj["lastGameInfo.awayTeamGoals"] = 1;
         obj["lastGameInfo.playersScoreGoal"]= "2 3 4 5 6 3 3";
         obj["lastResult"] = 0;
-        obj["logo"] = detailsJson.logo;
+
+        if(!detailsJson.logo) {
+            obj["logo"] = detailsJson.logo;
+        }else{
+            obj["logo"] = 1;
+        }
+
         obj["additionalFans"] = 0;
         obj["totalChampionships"] = 0;
 
