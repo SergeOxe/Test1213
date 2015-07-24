@@ -132,8 +132,13 @@ function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
 
         updateValue["additionalFans"] = randomIntFromInterval(10,150);
 
-        addValue["totalInstantTrain"] = 2;
-        instantTrain = 1;
+        if (team.totalInstantTrain  < 99) {
+            addValue["totalInstantTrain"] = 1;
+            instantTrain = 1;
+        }else{
+            addValue["totalInstantTrain"] = 0;
+            instantTrain = 0;
+        }
 
         updateValue["lastResult"]= 0;
         updateValue["statistics.currentLoseStreak"] = 0;
@@ -167,7 +172,7 @@ function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
         addValue["statistics.currentWinlessStreak"] = 1;
 
 
-        addValue["totalInstantTrain"] = 1;
+        addValue["totalInstantTrain"] = 0;
         instantTrain = 0;
 
         updateValue["additionalFans"] =  randomIntFromInterval(5,80);
