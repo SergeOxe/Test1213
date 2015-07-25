@@ -154,10 +154,10 @@ function  UpdateMatchPlayed(team,i_result,  i_matchInfo,  i_isHomeMatch) {
         instantTrain = 0;
 
         var fansLeft = randomIntFromInterval(-50,0);
-        if (team.gamesHistory.thisSeason.crowd - fansLeft > 0) {
+        if (team.gamesHistory.thisSeason.crowd + fansLeft > 0) {
             updateValue["additionalFans"] = fansLeft;
         }else {
-            updateValue["gamesHistory.thisSeason.crowd"] = 0;
+            updateValue["additionalFans"] = 0;
         }
 
         updateValue["lastResult"]= 1;
